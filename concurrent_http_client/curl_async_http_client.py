@@ -487,14 +487,19 @@ class CurlAsyncHTTPClient(object):
             curl.setopt(pycurl.NOSIGNAL, 1)
         """
 
-        curl.setopt(pycurl.RESOLVE, request.resolve_list or [])
-        curl.setopt(pycurl.CONNECT_TO, request.connect_to_list or [])
-        curl.setopt(pycurl.DNS_SERVERS, request.dns_servers or "")
-        curl.setopt(pycurl.DNS_CACHE_TIMEOUT, request.dns_cache_timeout or 120)
-        if request.dns_use_global_cache != None:
-            curl.setopt(pycurl.DNS_USE_GLOBAL_CACHE, request.dns_use_global_cache)
-        else:
-            curl.setopt(pycurl.DNS_USE_GLOBAL_CACHE, True)
+        if getattr(pycurl, "RESOLVE", None):
+            curl.setopt(pycurl.RESOLVE, request.resolve_list or [])
+        if getattr(pycurl, "CONNECT_TO", None):
+            curl.setopt(pycurl.CONNECT_TO, request.connect_to_list or [])
+        if getattr(pycurl, "DNS_SERVERS", None):
+            curl.setopt(pycurl.DNS_SERVERS, request.dns_servers or "")
+        if getattr(pycurl, "DNS_CACHE_TIMEOUT", None):
+            curl.setopt(pycurl.DNS_CACHE_TIMEOUT, request.dns_cache_timeout or 120)
+        if getattr(pycurl, "DNS_USE_GLOBAL_CACHE", None):
+            if request.dns_use_global_cache != None:
+                curl.setopt(pycurl.DNS_USE_GLOBAL_CACHE, request.dns_use_global_cache)
+            else:
+                curl.setopt(pycurl.DNS_USE_GLOBAL_CACHE, True)
 
         if request.prepare_curl_callback is not None:
             request.prepare_curl_callback(curl)
