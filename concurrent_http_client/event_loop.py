@@ -299,8 +299,10 @@ class EventLoop(object):
                     if self._timeouts:
                         poll_timeout = min(
                             poll_timeout,
-                            max(0, self._timeouts[0].deadline -
+                            max(0., self._timeouts[0].deadline -
                                 self.time()))
+                if len(self._callbacks):
+                    poll_timeout = 0.
                 self._poll(poll_timeout)
         except:
             self._status.transfer_to_stopping_if_necessary()
