@@ -492,7 +492,11 @@ class CurlAsyncHTTPClient(object):
         if getattr(pycurl, "CONNECT_TO", None):
             curl.setopt(pycurl.CONNECT_TO, request.connect_to_list or [])
         if getattr(pycurl, "DNS_SERVERS", None):
-            curl.setopt(pycurl.DNS_SERVERS, request.dns_servers or "")
+            try:
+                curl.setopt(pycurl.DNS_SERVERS, request.dns_servers or "")
+            except pycurl.error as exc:
+                if exc.args[0] != pycurl.E_NOT_BUILT_IN:
+                    raise
         if getattr(pycurl, "DNS_CACHE_TIMEOUT", None):
             curl.setopt(pycurl.DNS_CACHE_TIMEOUT, request.dns_cache_timeout or 120)
         if getattr(pycurl, "DNS_USE_GLOBAL_CACHE", None):

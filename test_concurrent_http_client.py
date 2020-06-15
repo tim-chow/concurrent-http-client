@@ -82,7 +82,7 @@ if __name__ == "__main__":
         format="%(asctime)s %(filename)s:"
             "%(lineno)d %(message)s",
         datefmt="%F %T")
-    url = "https://www.baidu.com/"
+    url = "https://www.sina.com.cn/"
     max_queue_size = 10000
     worker_count = 2
     max_clients = 250
