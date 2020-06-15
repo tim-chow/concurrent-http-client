@@ -39,8 +39,9 @@ class AbstractManager(object):
 
     def _start_predicate(self):
         for worker_id in range(self._worker_count):
-            LOGGER.debug("initialize worker thread #"
-                "%d" % worker_id)
+            LOGGER.debug(
+                "initialize worker thread #%d",
+                worker_id)
             waker = self.make_waker()
             self._wakers[worker_id] = waker
             thread = threading.Thread(
@@ -51,8 +52,9 @@ class AbstractManager(object):
             self._workers[worker_id] = thread
 
         for worker_id, thread in self._workers.items():
-            LOGGER.debug("start worker thread #"
-                "%d" % worker_id)
+            LOGGER.debug(
+                "start worker thread #%d",
+                worker_id)
             thread.start()
 
         return True
@@ -75,6 +77,11 @@ class AbstractManager(object):
         pass
 
     def stop(self, timeout=None):
+        all_workers_died = False
+        with self._status:
+            if self._quited_worker_count == self._worker_count:
+                all_workers_died = True
+
         if not self._status.transfer_to_stopping():
             raise RuntimeError("fail to stop Manager")
 
@@ -82,17 +89,18 @@ class AbstractManager(object):
             worker_id, thread = self._workers.popitem()
             with self._context_lock:
                 context = self._contexts.pop(worker_id)
-            self.destory_context(worker_id, context)
+            self.destroy_context(worker_id, context)
             waker = self._wakers.pop(worker_id)
             waker.wake()
             waker.close()
             thread.join(timeout)
             thread_name = thread.getName()
             if thread.isAlive():
-                LOGGER.error("%s is still running" %
+                LOGGER.error(
+                    "%s is still running",
                     thread_name)
             else:
-                LOGGER.info("%s is stopped" % thread_name)
+                LOGGER.info("%s is stopped", thread_name)
 
         with self._queue_lock:
             while self._queued_requests:
@@ -105,8 +113,11 @@ class AbstractManager(object):
                 except RuntimeError:
                     pass
 
+        if all_workers_died:
+            self._finalize_manager()
+
     @abc.abstractmethod
-    def destory_context(self, worker_id, context):
+    def destroy_context(self, worker_id, context):
         pass
 
     def quit_if_necessary(self, force_quit=False):
@@ -167,8 +178,8 @@ class AbstractManager(object):
                         request,
                         f, 
                         time.time()))
-            self._wake_up_workers()
-            return f
+        self._wake_up_workers()
+        return f
 
     def _wake_up_workers(self):
         for waker in self._wakers.values():
@@ -194,7 +205,7 @@ class CurlAsyncHTTPClientManager(AbstractManager):
         context["event_loop"] = EventLoop()
         return context
 
-    def destory_context(self, worker_id, context):
+    def destroy_context(self, worker_id, context):
         event_loop = context["event_loop"]
         event_loop.stop()
 
@@ -211,16 +222,15 @@ class CurlAsyncHTTPClientManager(AbstractManager):
                         client.wake_up,
                         EventLoop.READ)
 
-        quit_unexpectly = False
+        quit_unexpectedly = False
         try:
             event_loop.start()
         except:
             LOGGER.error(
-                "EventLoop of worker thread "
-                    "#%d quited unexpectly",
+                "EventLoop of worker thread #%d quited unexpectedly",
                 worker_id,
                 exc_info=True)
-            quit_unexpectly = True
+            quit_unexpectedly = True
 
         # 获取 client 正在处理的请求，并将其设置为失败
         for _, f, _ in client.get_proccessing_requests():
@@ -236,8 +246,7 @@ class CurlAsyncHTTPClientManager(AbstractManager):
         LOGGER.info(
             "worker thread #%d quited",
             worker_id)
-        if quit_unexpectly:
+        if quit_unexpectedly:
             self.force_quit()
         else:
             self.quit_if_necessary()
-
